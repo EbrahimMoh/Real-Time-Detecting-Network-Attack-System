@@ -2,4 +2,4 @@ This system will detect for type of attacks which are SQL injuction pattern, sca
 
 This system only run on Linux server.
 
-run the app.py first
+run the app.py first.
