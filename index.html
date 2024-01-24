@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cybersecurity Script Manager</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            text-align: center;
+            color: #3498db;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            background-color: #fff;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .script-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .script-name {
+            margin-right: 10px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .script-status {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .script-status-on {
+            background-color: #2ecc71; /* Green */
+        }
+
+        .script-status-off {
+            background-color: #e74c3c; /* Red */
+        }
+
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+        }
+
+        .toggle-label {
+            margin-right: 5px;
+        }
+
+        .run-all-btn,
+        .turn-off-all-btn {
+            margin-top: 20px;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .run-all-btn {
+            background-color: #3498db;
+            color: #fff;
+        }
+
+        .turn-off-all-btn {
+            background-color: #e74c3c;
+            color: #fff;
+        }
+
+        .run-all-btn:hover,
+        .turn-off-all-btn:hover {
+            background-color: #2980b9;
+        }
+
+        #notification-area {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #f8d7da;
+            color: #721c24;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Real-time Detection Network Attack System</h1>
+
+    <!-- Notification Area -->
+    <div id="notification-area"></div>
+
+    <ul>
+        {% for script_name, script_path in scripts.items() %}
+        <li>
+            <div class="script-container">
+                <div class="script-status script-status-{{ script_name }}"
+                    onclick="toggleScript('{{ script_name }}')"></div>
+                <div class="script-name">{{ script_name }}</div>
+                <div class="toggle-switch">
+                    <label class="toggle-label">On</label>
+                    <input type="checkbox" {% if script_running[script_name] %}checked{% endif %}
+                        onclick="toggleScript('{{ script_name }}')">
+                    
+                </div>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    <button class="run-all-btn" onclick="runAllScripts()">Run All Scripts</button>
+    <button class="turn-off-all-btn" onclick="turnOffAllScripts()">Turn Off All Scripts</button>
+
+    <script>
+        function showNotification(message, type) {
+            const notificationArea = document.getElementById('notification-area');
+            notificationArea.innerHTML = `<strong>${type}:</strong> ${message}`;
+            notificationArea.style.display = 'block';
+
+            setTimeout(() => {
+                notificationArea.style.display = 'none';
+            }, 5000);
+        }
+
+        function toggleScript(scriptName) {
+            const scriptStatus = document.querySelector(`.script-status-${scriptName}`);
+            const isRunning = scriptStatus.classList.contains('script-status-on');
+
+            
+            if (isRunning) {
+               
+                stopScript(scriptName);
+            } else {
+                // Start the script
+                startScript(scriptName);
+            }
+        }
+
+        function runAllScripts() {
+            // Loop through each script and make an AJAX request to start it
+            {% for script_name, script_path in scripts.items() %}
+            fetch(`/run/{{ script_name }}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to start ${script_name}`);
+                    }
+                    return response.text();
+                })
+                .then(data => {
+                    console.log(data);
+
+                    // Update the color dynamically
+                    const scriptStatus = document.querySelector(`.script-status-${script_name}`);
+                    scriptStatus.classList.remove('script-status-off');
+                    scriptStatus.classList.add('script-status-on');
+
+                    // Update the checkbox state
+                    const checkbox = document.querySelector(`input[data-script="${script_name}"]`);
+                    checkbox.checked = true;
+
+                    // Show notification
+                    showNotification(`Script ${script_name} started.`, 'Success');
+                })
+                .catch(error => {
+                    console.error(error);
+                    showNotification(`Failed to start ${script_name}.`, 'Error');
+                });
+            {% endfor %}
+
+            alert('Running all scripts!');
+        }
+
+        function turnOffAllScripts() {
+            // Loop through each script and make an AJAX request to stop it
+            {% for script_name, script_path in scripts.items() %}
+            stopScript('{{ script_name }}');
+            {% endfor %}
+
+            // Manually update the checkbox state on the client side
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+
+            // Add a slight delay before updating the script status elements
+            setTimeout(() => {
+                // Remove red color class from all script status elements
+                const scriptStatusElements = document.querySelectorAll('.script-status');
+                scriptStatusElements.forEach(element => {
+                    element.classList.remove('script-status-on');
+                    element.classList.add('script-status-off');
+                });
+            }, 100);
+
+            alert('Turning off all scripts!');
+        }
+
+        function startScript(scriptName) {
+        
+            fetch(`/run/${scriptName}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to start ${scriptName}`);
+                    }
+                    return response.text();
+                })
+                .then(data => {
+                    console.log(data);
+
+                    // Update the color dynamically
+                    const scriptStatus = document.querySelector(`.script-status-${scriptName}`);
+                    scriptStatus.classList.remove('script-status-off');
+                    scriptStatus.classList.add('script-status-on');
+
+                    // Show notification
+                    showNotification(`Script ${scriptName} started.`, 'Success');
+                })
+                .catch(error => {
+                    console.error(error);
+                    showNotification(`Failed to start ${scriptName}.`, 'Error');
+                });
+        }
+
+        function stopScript(scriptName) {
+            
+            fetch(`/stop/${scriptName}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to stop ${scriptName}`);
+                    }
+                    return response.text();
+                })
+                .then(data => {
+                    console.log(data);
+
+                    // Update the color dynamically
+                    const scriptStatus = document.querySelector(`.script-status-${scriptName}`);
+                    scriptStatus.classList.remove('script-status-on');
+                    scriptStatus.classList.add('script-status-off');
+
+                    // Show notification
+                    showNotification(`Script ${scriptName} stopped.`, 'Success');
+                })
+                .catch(error => {
+                    console.error(error);
+                    showNotification(`Failed to stop ${scriptName}.`, 'Error');
+                });
+        }
+    </script>
+</body>
+
+</html>
